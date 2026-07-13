@@ -12,7 +12,8 @@ language: zh-CN
 timezone: Asia/Hong_Kong
 
 # URL
-url: https://liz-lee-hk.github.io
+url: https://github.com/Liz-Lee-HK/liz-notion-website
+root: /
 permalink: :year/:month/:day/:title/
 permalink_defaults:
 pretty_urls:
