@@ -1,6 +1,6 @@
 # Liz Notion Website
 
-这是基于 `/Users/liruolin/liz-website/` 新建的独立 Hexo 项目副本，保留了原网站的结构、内容和 `meow` 主题，并增加了一个 Notion 白名单同步层。
+这是基于 liz-website 新建的独立 Hexo 项目副本，保留了原网站的结构、内容和 `meow` 主题，并增加了一个 Notion 白名单同步层。
 
 ## 工作方式
 
@@ -15,36 +15,82 @@
 2. 只把需要公开到网站的页面或数据库 share 给这个 integration。
 3. 在 `notion-sync.config.cjs` 的 `mappings` 里添加映射。
 
-示例：
+单篇学习笔记示例：
 
 ```js
 {
-  name: 'learning-notes',
+  name: 'agent-harness-claude-agent-sdk',
   source: {
-    type: 'database',
-    id: 'YOUR_NOTION_DATABASE_ID'
+    type: 'page',
+    id: 'YOUR_NOTION_PAGE_ID'
   },
   target: {
     dir: 'source/_posts/learning-notes',
-    category: '学习笔记',
-    tags: ['学习笔记']
-  },
-  properties: {
-    title: 'Name',
-    date: 'Date',
-    summary: 'Summary',
-    tags: 'Tags',
-    category: 'Category',
-    slug: 'Slug'
-  },
-  filter: {
-    property: 'Status',
-    status: {
-      equals: 'Published'
-    }
+    category: 'Study',
+    tags: ['学习笔记', 'Agent']
   }
 }
 ```
+
+单篇项目示例：
+
+```js
+{
+  name: 'my-project-name',
+  source: {
+    type: 'page',
+    id: 'YOUR_NOTION_PAGE_ID'
+  },
+  target: {
+    dir: 'source/_posts/projects',
+    category: 'Projects',
+    tags: ['项目']
+  }
+}
+```
+
+注意：导航栏里的“学习笔记”实际对应 Hexo 分类 `Study`，项目集对应 `Projects`，随手记对应 `Notes`。`category` 要填这些英文分类，中文可以放在 `tags` 里。
+
+## 日常更新流程
+
+### 新增一篇 Notion 页面
+
+1. 在 Notion 打开新页面。
+2. 右上角 `...` -> `Add connections`，选择 `Liz Website Sync` integration。
+3. 复制页面链接，取里面的 Notion page ID。
+4. 在 `notion-sync.config.cjs` 的 `mappings` 数组里新增一条 `source.type: 'page'` 映射。
+5. 本地执行同步和构建检查：
+
+```bash
+npm run sync:notion
+npm run build
+```
+
+6. 提交并推送到 GitHub，Vercel 会自动重新部署：
+
+```bash
+git add .
+git commit -m "add notion page"
+git push
+```
+
+### 更新已有 Notion 文章
+
+如果这篇文章已经在 `notion-sync.config.cjs` 里有映射，不需要改配置。
+
+推荐流程：
+
+```bash
+npm run sync:notion
+npm run build
+git add .
+git commit -m "update notion notes"
+git push
+```
+
+这样线上网站会更新，GitHub 仓库里的 Markdown 也会保留最新版本。
+
+也可以只在 Vercel 的 `Deployments` 页面点最新部署右侧的 `...` -> `Redeploy`。这种方式会更新线上网站，但不会把同步后的 Markdown 提交回 GitHub。
 
 ## Vercel
 

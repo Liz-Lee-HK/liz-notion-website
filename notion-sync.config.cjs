@@ -24,7 +24,7 @@ module.exports = {
       },
       target: {
         dir: 'source/_posts/learning-notes',
-        category: '学习笔记',
+        category: 'Study',
         tags: ['学习笔记', 'Agent', 'Claude Agent SDK']
       }
     }

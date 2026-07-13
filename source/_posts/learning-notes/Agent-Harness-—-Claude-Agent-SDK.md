@@ -2,7 +2,7 @@
 title: "Agent Harness — Claude Agent SDK"
 date: "2026-07-01T01:50:00.000Z"
 updated: "2026-07-13T06:11:00.000Z"
-categories: ["学习笔记"]
+categories: ["Study"]
 tags: ["Notion", "学习笔记", "Agent", "Claude Agent SDK"]
 layout: "post"
 notion_sync: true
