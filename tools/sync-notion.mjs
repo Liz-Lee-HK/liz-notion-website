@@ -104,8 +104,87 @@ async function pageToMarkdown(page, mapping, config) {
   const blocks = await fetchBlocks(page.id)
   const body = await blocksToMarkdown(blocks, 0, config)
   const frontMatter = buildFrontMatter(page, mapping, config)
+  const markdown = `---\n${frontMatter}---\n\n${body.trim()}\n`
 
-  return `---\n${frontMatter}---\n\n${body.trim()}\n`
+  return postprocessMarkdown(markdown, mapping)
+}
+
+function postprocessMarkdown(markdown, mapping) {
+  if (mapping.postprocess !== 'agent-harness-layout') return markdown
+  return formatAgentHarnessLayout(markdown)
+}
+
+function formatAgentHarnessLayout(markdown) {
+  const replacements = [
+    [
+      `![Notion asset](/img/notion/39daeaf18f618080a4b8ffe8f9b64dc3.png)\n\nLLM：大语言模型，基于对话的计算模型，agent的大脑。\n\nHarness：给予agent实际执行能力的一套设计机制，拓展agent的能力，确定他的边界，加上一些校验和审核，保证agent稳定运行减少出错保证安全输出我们想要的结果。大语言模型的操作系统\n\n“If you’re not the model, you’re the harness.”\n\nDeepAgents 和OpenAI Agents SDK以及Claude Agents SDK已经是成品的agent harness也就是操作系统了，只是说可以自定义修改一些配置，所以被理解为开发工具，但其实他们并不是让你自由开发的零散组件。`,
+      `![Notion asset](/img/notion/39daeaf18f618080a4b8ffe8f9b64dc3.png)\n\n## 核心概念\n\n> “If you’re not the model, you’re the harness.”\n\n- LLM：大语言模型，基于对话的计算模型，agent的大脑。\n- Harness：给予agent实际执行能力的一套设计机制，拓展agent的能力，确定他的边界，加上一些校验和审核，保证agent稳定运行减少出错保证安全输出我们想要的结果。大语言模型的操作系统\n- Agent：包括LLM、Skills、agent主程序、工具函数的一整套智能实体，本质上是以LLM为大脑，工具为手脚的智能体。\n\nDeepAgents 和OpenAI Agents SDK以及Claude Agents SDK已经是成品的agent harness也就是操作系统了，只是说可以自定义修改一些配置，所以被理解为开发工具，但其实他们并不是让你自由开发的零散组件。`
+    ],
+    [
+      `自己开发 harness 则是你自己决定所有边界。相当于自己开发一个操作系统。\n\nAgent：包括LLM、Skills、agent主程序、工具函数的一整套智能实体，本质上是以LLM为大脑，工具为手脚的智能体。\n\nAgent = LLM大脑 + Harness运行调度层 + 工具/技能集 + 记忆与上下文管理`,
+      `自己开发 harness 则是你自己决定所有边界。相当于自己开发一个操作系统。\n\n> Agent = LLM大脑 + Harness运行调度层 + 工具/技能集 + 记忆与上下文管理`
+    ],
+    [`生产级harness的组件：`, `## 生产级 Harness 的组件`],
+    [
+      `1.Agent Loop：agent执行任务的核心模块/逻辑，本质是 思考→调用外部工具 / 环境→接收结果→再思考」的循环。有几种不同的实现办法，ReAct和Plan-and-Execute\n\nReAct：全称叫Reasoning & Acting, 即思考→执行→看看结果（组装prompt、调用模型、解析输出、执行tool call、把结果塞进上下文、继续下一轮），迭代循环。是绝大多数 Agent 框架（LangChain、OpenAI Agents SDK、Claude Agent）底层默认的循环逻辑。\n\nPlan-and-Execute：先计划完整流程，再分步执行。`,
+      `### 1. Agent Loop\n\nagent执行任务的核心模块/逻辑，本质是 思考→调用外部工具 / 环境→接收结果→再思考」的循环。有几种不同的实现办法，ReAct和Plan-and-Execute\n\n- ReAct：全称叫Reasoning & Acting, 即思考→执行→看看结果（组装prompt、调用模型、解析输出、执行tool call、把结果塞进上下文、继续下一轮），迭代循环。是绝大多数 Agent 框架（LangChain、OpenAI Agents SDK、Claude Agent）底层默认的循环逻辑。\n- Plan-and-Execute：先计划完整流程，再分步执行。`
+    ],
+    [
+      `2.上下文管理：大模型本身没有记忆，每次对话都要带上之前的上下文，但上下文太长而上下文窗口有限的时候就要进行上下文管理，上下文中会有（系统提示词、用户指令、工具返回结果、AI思考过程等信息），对话轮数多了就需要压缩上下文，通过压缩历史内容或丢掉一部分。\n\n压缩历史上下文：当快达到上下文窗口极限时，压缩之前的内容为摘要。缺点是会丢失信息，agent反复犯错也是因为这个。\n\nobservation masking：mask掉旧的tool output，只保留关键信息\n\n即时检索：靠轻量索引和局部读取，避免传入一整份大文件\n\n多agent协作：主agent负责分任务，子agent负责一部分的工作，只用返回结果。上下文被分散到每一个子agent中，避免上下文爆炸。`,
+      `### 2. 上下文管理\n\n大模型本身没有记忆，每次对话都要带上之前的上下文，但上下文太长而上下文窗口有限的时候就要进行上下文管理，上下文中会有（系统提示词、用户指令、工具返回结果、AI思考过程等信息），对话轮数多了就需要压缩上下文，通过压缩历史内容或丢掉一部分。\n\n- 压缩历史上下文：当快达到上下文窗口极限时，压缩之前的内容为摘要。缺点是会丢失信息，agent反复犯错也是因为这个。\n- observation masking：mask掉旧的tool output，只保留关键信息\n- 即时检索：靠轻量索引和局部读取，避免传入一整份大文件\n- 多agent协作：主agent负责分任务，子agent负责一部分的工作，只用返回结果。上下文被分散到每一个子agent中，避免上下文爆炸。`
+    ],
+    [`3.记忆系统：分为短期记忆（当前回话历史）+长期记忆（跨对话保留。在项目文件，数据库session，本地持久层，结构化store中）`, `### 3. 记忆系统\n\n分为短期记忆（当前回话历史）+长期记忆（跨对话保留。在项目文件，数据库session，本地持久层，结构化store中）`],
+    [`长期记忆加载方式（codex的设计）：`, `#### 长期记忆加载方式（codex的设计）`],
+    [`这里有一个很重要的设计原则：**Agent 对自己的记忆只能当成提示，不能当成事实。 真要执行动作之前，还是得回到真实状态再核对一次。**`, `> 这里有一个很重要的设计原则：**Agent 对自己的记忆只能当成提示，不能当成事实。 真要执行动作之前，还是得回到真实状态再核对一次。**`],
+    [`4.prompt组装`, `### 4. prompt组装`],
+    [`5.输出解析与结构化返回（Output Parsing）`, `### 5. 输出解析与结构化返回（Output Parsing）`],
+    [`6. 状态持久化与 Checkpoint（State Persistence）`, `### 6. 状态持久化与 Checkpoint（State Persistence）`],
+    [`7.**错误恢复与重试（Error Handling）**`, `### 7. 错误恢复与重试（Error Handling）`],
+    [`比较成熟的 harness，不会让 tool handler 一报错就把整轮循环打断，而是尽量把失败变成模型可理解、可处理的反馈。`, `> 比较成熟的 harness，不会让 tool handler 一报错就把整轮循环打断，而是尽量把失败变成模型可理解、可处理的反馈。`],
+    [`8.**权限与 Guardrails（Permissions and Safety）**`, `### 8. 权限与 Guardrails（Permissions and Safety）`],
+    [`9.**验证闭环（Verification Loop）**`, `### 9. 验证闭环（Verification Loop）`],
+    [`10.**Sub-agent 与执行模型（Execution Models）**`, `### 10. Sub-agent 与执行模型（Execution Models）`],
+    [`11.**终止条件与生命周期（Termination and Lifecycle）**`, `### 11. 终止条件与生命周期（Termination and Lifecycle）`],
+    [`整体的循环流程`, `## 整体循环流程`],
+    [`七个步骤：`, `### 七个步骤`],
+    [`**为什么要把文件系统也纳入 Harness？**`, `### 为什么要把文件系统也纳入 Harness？`],
+    [`MCP：Client 首先与 Server 握手并获取工具清单`, `## MCP 与 Claude Agent SDK\n\nMCP：Client 首先与 Server 握手并获取工具清单`],
+    [
+      `MCP Client-server的传输信息方式是：\n  1️⃣STDIO（本地进程，client和server在一台机器上）\n\n  \`\`\`python\n  Client  --stdin-->   Server process\n  Client  <--stdout--  Server process\n  \`\`\`\n\n  2️⃣SSE Transport（远程服务，\`Client\` 和 \`Server\` 不通过本地进程管道通信，而是通过 HTTP 连接通信，其中 Server 用一条持续打开的 SSE 连接，把事件/消息持续推送给 Client。为什么要持续打开？：避免client需要轮询反复问sevrer是否有结果，可以让server只要有结果就返回给client）\n\n  \`\`\`python\n  Client  --HTTP request-->  Server\n  Client  <--SSE stream----- Server\n  Client  --HTTP POST------> Server\n  \`\`\``,
+      `MCP Client-server的传输信息方式是：\n\n### 1. STDIO（本地进程，client和server在一台机器上）\n\n\`\`\`python\nClient  --stdin-->   Server process\nClient  <--stdout--  Server process\n\`\`\`\n\n### 2. SSE Transport\n\n远程服务，\`Client\` 和 \`Server\` 不通过本地进程管道通信，而是通过 HTTP 连接通信，其中 Server 用一条持续打开的 SSE 连接，把事件/消息持续推送给 Client。为什么要持续打开？：避免client需要轮询反复问sevrer是否有结果，可以让server只要有结果就返回给client\n\n\`\`\`python\nClient  --HTTP request-->  Server\nClient  <--SSE stream----- Server\nClient  --HTTP POST------> Server\n\`\`\``
+    ],
+    [`**对比几家主流Agent框架**`, `## 对比几家主流 Agent 框架`],
+    [`**大家都在做相似的 agent 系统（同样的loop），但控制权到底应该放在哪里？**`, `### 大家都在做相似的 agent 系统（同样的loop），但控制权到底应该放在哪里？`],
+    [`| 框架 | 控制权主要放在哪里 | 主要控制什么 | 可以理解为 |\n\n| Claude Agent`, `| 框架 | 控制权主要放在哪里 | 主要控制什么 | 可以理解为 |\n| --- | --- | --- | --- |\n| Claude Agent`],
+    [`**Anthropic：**`, `### Anthropic`],
+    [`**OpenAI Agents SDK：**`, `### OpenAI Agents SDK`],
+    [`**LangGraph** 规划好的任务地图`, `### LangGraph`],
+    [`它是 graph-first。`, `规划好的任务地图。它是 graph-first。`],
+    [`**CrewAI** 核心是 role/task，先分task，再找agent：`, `### CrewAI`],
+    [`它是 role/task-first。`, `核心是 role/task，先分task，再找agent。它是 role/task-first。`],
+    [`**AutoGen** 的核心是 agent 之间对话的消息：`, `### AutoGen`],
+    [`它是 conversation-first。`, `核心是 agent 之间对话的消息。它是 conversation-first。`],
+    [`**如果把任务看作盖大楼**`, `## 如果把任务看作盖大楼`],
+    [`Agent就是一个包括脚手架、工人、砖头和各种材料的大型施工行为`, `Agent就是一个包括脚手架、工人、砖头和各种材料的大型施工行为。`],
+    [`LLM是负责思考怎么盖的包工头和工人，你可以选择用不同能力的工人，聪明的工人干活快但是工资高，便宜的工人干活慢而且容易出错。\n\nTools是工人要用的砖头、水泥等工具\n\nHarness就是脚手架，帮助工人爬高，按层（对话轮数）增加高度（记忆、上下文）；保证安全界限（楼下的安全网），你可以选择不同的脚手架（Claude、openai、langGraph、DeepAgents等），你的工人本事越大脚手架就可以简单一点，但如果你的工人已经习惯了某套脚手架体系，如果你突然换一种，可能会导致模型效果变差。如果完全没有脚手架，LLM只能告诉你要怎么做，没有真正动手的能力。\n\nLoop就是一层一层往上盖的过程，每一层可能用到不同的材料（tools），要盖几层/什么时候结束由工人（LLM）决定。`, `- LLM是负责思考怎么盖的包工头和工人，你可以选择用不同能力的工人，聪明的工人干活快但是工资高，便宜的工人干活慢而且容易出错。\n- Tools是工人要用的砖头、水泥等工具\n- Harness就是脚手架，帮助工人爬高，按层（对话轮数）增加高度（记忆、上下文）；保证安全界限（楼下的安全网），你可以选择不同的脚手架（Claude、openai、langGraph、DeepAgents等），你的工人本事越大脚手架就可以简单一点，但如果你的工人已经习惯了某套脚手架体系，如果你突然换一种，可能会导致模型效果变差。如果完全没有脚手架，LLM只能告诉你要怎么做，没有真正动手的能力。\n- Loop就是一层一层往上盖的过程，每一层可能用到不同的材料（tools），要盖几层/什么时候结束由工人（LLM）决定。`],
+    [`构建Harness的7个选择：`, `## 构建 Harness 的 7 个选择`],
+    [`1.单 Agent 还是 Multi-Agent`, `### 1. 单 Agent 还是 Multi-Agent`],
+    [`2. ReAct 还是 Plan-and-Execute`, `### 2. ReAct 还是 Plan-and-Execute`],
+    [`3. 上下文窗口怎么管`, `### 3. 上下文窗口怎么管`],
+    [`4. 验证闭环怎么搭`, `### 4. 验证闭环怎么搭`],
+    [`5. 权限要放宽还是收紧`, `### 5. 权限要放宽还是收紧`],
+    [`6. 工具要暴露多少`, `### 6. 工具要暴露多少`],
+    [`7. Harness 应该多厚`, `### 7. Harness 应该多厚`]
+  ]
+
+  let formatted = markdown
+  for (const [from, to] of replacements) {
+    formatted = formatted.replace(from, to)
+  }
+
+  return formatted
+    .replace(/\n\| (Claude Agent|OpenAI Agents|LangGraph|CrewAI|AutoGen)/g, '\n| $1')
+    .replace(/(### Anthropic\n\n薄 Harness，智能尽量留给模型)\n(Anthropic)/, '$1\n\n$2')
 }
 
 async function fetchBlocks(blockId) {

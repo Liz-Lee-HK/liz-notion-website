@@ -26,7 +26,8 @@ module.exports = {
         dir: 'source/_posts/learning-notes',
         category: 'Study',
         tags: ['学习笔记', 'Agent', 'Claude Agent SDK']
-      }
+      },
+      postprocess: 'agent-harness-layout'
     }
   ]
 }
